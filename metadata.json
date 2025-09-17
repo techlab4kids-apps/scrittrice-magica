@@ -1,0 +1,5 @@
+{
+  "name": "AI Storybook Weaver",
+  "description": "An application to generate personalized storybooks using AI. Users can provide prompts, style references, and character images to create unique stories, then edit the text and images of each page before exporting in various formats.",
+  "requestFramePermissions": []
+}
