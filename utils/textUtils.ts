@@ -29,19 +29,17 @@ export const sanitizeFilename = (name: string): string => {
 
 export const formatTextWithLineBreaks = (text: string): string => {
   if (!text) return '';
-  // 1. Normalize all line breaks to a single space to start fresh.
-  // This removes user-entered newlines and existing <br> tags to enforce a consistent sentence-based formatting.
-  const cleanedText = text.replace(/<br\s*\/?>/gi, ' ').replace(/\s*\n\s*/g, ' ').replace(/\s+/g, ' ').trim();
   
-  // 2. Add a newline character after each sentence terminator (. ! ?).
-  // The regex ensures that we don't add multiple newlines if there are already spaces.
-  const formattedText = cleanedText.replace(/([.!?])\s*/g, '$1\n');
+  // 1. First, strip any potential HTML and normalize whitespace to have a clean string to work with.
+  // This is safe because this function is used on raw text returned from the AI, not user-formatted content.
+  const cleanedText = stripHtml(text).replace(/\s+/g, ' ').trim();
   
-  // 3. Convert all temporary newline characters to HTML <br/> tags.
-  let finalHtml = formattedText.replace(/\n/g, '<br/>');
+  // 2. Split the text into sentences. The regex uses a positive lookbehind `(?<=...)`
+  // to split the string on spaces that are preceded by sentence-ending punctuation.
+  // It handles punctuation (. ! ?) that might be inside closing quotes (' " »).
+  // This prevents incorrect breaks, for example in: `"What was that?!" she asked.`
+  const sentences = cleanedText.split(/(?<=[.!?]['"»]?)\s+/);
   
-  // 4. Remove any trailing <br/> tag that might have been added to the very end of the text.
-  finalHtml = finalHtml.replace(/<br\s*\/?>\s*$/g, '');
-
-  return finalHtml;
+  // 3. Rejoin the sentences with an HTML break tag for rendering.
+  return sentences.join('<br/>');
 };

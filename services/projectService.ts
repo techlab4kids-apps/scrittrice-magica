@@ -1,10 +1,10 @@
-import { StoryProject } from "../types";
+import { StoryProject, StoryPage } from "../types";
 import { sanitizeFilename } from "../utils/textUtils";
 
 // JSZip is loaded globally via a script tag in index.html
 declare var JSZip: any;
 
-const CURRENT_VERSION = "1.0.0";
+const CURRENT_VERSION = "1.1.0";
 const FILE_SIGNATURE = "TL4KB"; // Tell Me a Story for Kids Book
 
 /**
@@ -33,6 +33,39 @@ export const saveProject = (project: StoryProject) => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 };
+
+
+const migrateProjectData = (data: any): StoryProject => {
+    if (!data.version || data.version === "1.0.0") {
+        console.log(`Migrating project from version ${data.version || "1.0.0"} to ${CURRENT_VERSION}`);
+        const migratedPages = data.pages.map((page: any) => {
+            const history = [];
+            // The old `finalImagePrompt` becomes the first and only item in the history.
+            const prompt = page.finalImagePrompt || page.imagePrompt || '';
+            if (prompt) {
+                history.push(prompt);
+            }
+            
+            // Remove the old field if it exists
+            delete page.finalImagePrompt;
+            
+            return {
+                ...page,
+                imagePromptHistory: history,
+            };
+        });
+
+        return {
+            ...data,
+            pages: migratedPages,
+            version: CURRENT_VERSION, // Update version after migration
+        };
+    }
+    
+    // If version is current, just return data as is.
+    return data as StoryProject;
+};
+
 
 /**
  * Loads a story project from a .tl4kb file.
@@ -113,35 +146,25 @@ export const loadProject = (file: File): Promise<StoryProject> => {
                 }
                 
                 const data = JSON.parse(projectJsonText);
+                let project: StoryProject;
 
                 if (data.signature === FILE_SIGNATURE) {
-                    // Standard, signed file format.
-                    if (data.version !== CURRENT_VERSION) {
-                        console.warn(`La versione del file (${data.version}) è diversa da quella dell'app (${CURRENT_VERSION}). Potrebbero esserci problemi di compatibilità.`);
-                    }
-
                     if (!data.promptData || !Array.isArray(data.pages)) {
                          return reject(new Error("Il file di progetto è corrotto o mancano dati essenziali."));
                     }
-                    
-                    const project: StoryProject = {
-                        promptData: data.promptData,
-                        pages: data.pages,
-                        createdAt: data.createdAt,
-                        version: data.version,
-                    };
+                    project = migrateProjectData(data);
                     resolve(project);
                 } else if (data.promptData && Array.isArray(data.pages)) {
                     // This looks like a valid project object, but without the signature.
                     // Likely from an old version or from the 'Copy JSON' feature.
                     console.warn("Caricamento di un file di progetto senza firma. Si presume un formato legacy valido.");
                     
-                    const project: StoryProject = {
-                        promptData: data.promptData,
-                        pages: data.pages,
+                    const legacyData = {
+                        ...data,
                         createdAt: data.createdAt || new Date().toISOString(),
-                        version: data.version || '0.9.0', // Mark as legacy
+                        version: data.version || '1.0.0', // Mark as legacy
                     };
+                    project = migrateProjectData(legacyData);
                     resolve(project);
                 } else {
                     // If it has neither signature nor the required project keys, it's invalid.

@@ -26,10 +26,11 @@ const App: React.FC = () => {
       setAppState('editing');
     } catch (err) {
       console.error("Failed to load project:", err);
-      const userMessage = err instanceof Error && (err.message.includes("versione non compatibile") || err.message.includes("corrotto"))
+      const userMessage = err instanceof Error && (err.message.includes("versione non compatibile") || err.message.includes("corrotto") || err.message.includes("non valido"))
         ? err.message
         : "Impossibile caricare il file. Potrebbe essere corrotto o provenire da una versione non compatibile dell'applicazione.";
       alert(userMessage);
+      throw err; // Re-throw to signal failure
     }
   };
 
@@ -61,34 +62,23 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (appState) {
+      case 'welcome':
+        return <WelcomeScreen onStart={handleStart} onLoad={handleLoad} />;
       case 'wizard':
         return <PromptWizard onSubmit={handleGenerate} />;
       case 'generating':
-        return (
-          <>
-            <PromptWizard onSubmit={handleGenerate} disabled={true} />
-            <LoadingOverlay message={progressMessage} error={error} />
-          </>
-        );
+        return <LoadingOverlay message={progressMessage} error={error} />;
       case 'editing':
-        if (storyProject) {
-          return <StoryEditor project={storyProject} onBack={handleBackToWelcome} />;
-        }
-        // Fallback to welcome if no project
-        setAppState('welcome');
-        return <WelcomeScreen onStart={handleStart} onLoad={handleLoad} />;
-      case 'welcome':
+        return storyProject && <StoryEditor project={storyProject} onBack={handleBackToWelcome} />;
       default:
-        return <WelcomeScreen onStart={handleStart} onLoad={handleLoad} />;
+        return null;
     }
   };
 
   return (
-    <div className="bg-gray-100 min-h-screen text-gray-800">
-      <main className="container mx-auto px-4 py-8">
-        {renderContent()}
-      </main>
-    </div>
+    <main className="container mx-auto px-4 py-8">
+      {renderContent()}
+    </main>
   );
 };
 

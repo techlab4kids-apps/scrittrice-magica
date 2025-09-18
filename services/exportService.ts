@@ -29,14 +29,21 @@ const getImageAsBase64 = async (url: string): Promise<string | null> => {
     }
 };
 
+const mapFontToPdf = (fontFamily: string): string => {
+    const family = fontFamily.toLowerCase();
+    if (family.includes('georgia') || family.includes('serif')) {
+        return 'Times-Roman';
+    }
+    // Use Helvetica as a robust default for sans-serif and playful fonts like Comic Sans
+    return 'Helvetica';
+};
+
 export const exportToPdf = async (project: StoryProject) => {
     const doc = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
         format: 'a4',
     });
-
-    doc.setFont('Helvetica');
 
     for (let i = 0; i < project.pages.length; i++) {
         const page = project.pages[i];
@@ -50,42 +57,76 @@ export const exportToPdf = async (project: StoryProject) => {
         const imageBase64 = await getImageAsBase64(page.imageUrl);
         if (imageBase64) {
              try {
+                // Image area is the left half of the page, with margins
+                const imageAreaWidth = (A4_HEIGHT_MM / 2) - (MARGIN_MM * 2);
+                const imageAreaHeight = A4_WIDTH_MM - (MARGIN_MM * 2);
+
                 const imageProperties = doc.getImageProperties(imageBase64);
                 const aspectRatio = imageProperties.width / imageProperties.height;
-                const areaWidth = (A4_HEIGHT_MM / 2) - (MARGIN_MM * 1.5);
-                const areaHeight = A4_WIDTH_MM - (MARGIN_MM * 2);
                 
-                let imgWidth = areaWidth;
-                let imgHeight = areaWidth / aspectRatio;
+                let imgWidth = imageAreaWidth;
+                let imgHeight = imageAreaWidth / aspectRatio;
 
-                if (imgHeight > areaHeight) {
-                    imgHeight = areaHeight;
-                    imgWidth = areaHeight * aspectRatio;
+                if (imgHeight > imageAreaHeight) {
+                    imgHeight = imageAreaHeight;
+                    imgWidth = imageAreaHeight * aspectRatio;
                 }
 
-                const x = MARGIN_MM + (areaWidth - imgWidth) / 2;
-                const y = MARGIN_MM + (areaHeight - imgHeight) / 2;
+                // Center the image within its area (which starts at MARGIN_MM)
+                const x = MARGIN_MM + (imageAreaWidth - imgWidth) / 2;
+                const y = MARGIN_MM + (imageAreaHeight - imgHeight) / 2;
 
                 doc.addImage(imageBase64, 'JPEG', x, y, imgWidth, imgHeight);
              } catch(e) {
                 console.error("Error adding image to PDF:", e);
-                doc.text("Immagine non disponibile", MARGIN_MM + 20, A4_WIDTH_MM / 2);
+                doc.text("Immagine non disponibile", A4_HEIGHT_MM / 4, A4_WIDTH_MM / 2, { align: 'center' });
              }
         } else {
-             doc.text("Immagine non disponibile", MARGIN_MM + 20, A4_WIDTH_MM / 2);
+             doc.text("Immagine non disponibile", A4_HEIGHT_MM / 4, A4_WIDTH_MM / 2, { align: 'center' });
         }
 
         // --- Right side: Text ---
-        const textX = (A4_HEIGHT_MM / 2) + (A4_HEIGHT_MM / 4); // Center of the right half
+        const rightHalfXStart = A4_HEIGHT_MM / 2;
         const textY = A4_WIDTH_MM / 2; // Center vertically
-        const textAreaWidth = (A4_HEIGHT_MM / 2) - (MARGIN_MM * 2);
+        const textAreaWidth = rightHalfXStart - (MARGIN_MM * 2);
 
-        doc.setFontSize(isCover ? FONT_SIZE_TITLE : FONT_SIZE_BODY);
+        const effectiveTextStyle = page.textStyle || project.promptData.textStyle;
         
-        const text = stripHtml(page.text);
+        // 1. Set Font Family
+        doc.setFont(mapFontToPdf(effectiveTextStyle.fontFamily));
+        
+        // 2. Set Font Size
+        const fontSize = parseInt(effectiveTextStyle.fontSize, 10) || (isCover ? FONT_SIZE_TITLE : FONT_SIZE_BODY);
+        doc.setFontSize(fontSize);
+        
+        // 3. Process Text for Line Breaks and HTML
+        const BR_PLACEHOLDER = '[[BR]]';
+        let text = page.text.replace(/<br\s*\/?>/gi, BR_PLACEHOLDER);
+        text = stripHtml(text);
+        text = text.replace(/\[\[BR\]\]/g, '\n');
+
+        // 4. Apply Text Transform
+        if (effectiveTextStyle.textTransform === 'uppercase') {
+            text = text.toUpperCase();
+        } else if (effectiveTextStyle.textTransform === 'lowercase') {
+            text = text.toLowerCase();
+        }
+        
         const splitText = doc.splitTextToSize(text, textAreaWidth);
         
-        doc.text(splitText, textX, textY, { align: 'center', baseline: 'middle' });
+        // 5. Apply Text Alignment and calculate X coordinate
+        const align = page.textAlign || (isCover ? 'center' : 'left');
+        
+        let textX: number;
+        if (align === 'center') {
+            textX = rightHalfXStart + (rightHalfXStart / 2); // Center of right half
+        } else if (align === 'right') {
+            textX = A4_HEIGHT_MM - MARGIN_MM; // Right edge of text area
+        } else { // 'left'
+            textX = rightHalfXStart + MARGIN_MM; // Left edge of text area
+        }
+        
+        doc.text(splitText, textX, textY, { align: align, baseline: 'middle' });
     }
     
     const title = project.pages[0]?.text || 'storia';

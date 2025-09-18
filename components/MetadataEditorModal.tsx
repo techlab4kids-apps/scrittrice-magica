@@ -33,7 +33,7 @@ const MetadataEditorModal: React.FC<MetadataEditorModalProps> = ({ initialData, 
     onClose();
   };
 
-  const inputClasses = "w-full bg-gray-50 border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500";
+  const inputClasses = "w-full bg-gray-50 border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900";
   
   const fontSizes = [];
   for (let i = 8; i <= 36; i += 2) {
@@ -44,7 +44,7 @@ const MetadataEditorModal: React.FC<MetadataEditorModalProps> = ({ initialData, 
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full animate-fade-in" onClick={(e) => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-          <h3 className="text-lg font-semibold">Modifica Dati Storia</h3>
+          <h3 className="text-lg font-semibold text-gray-800">Modifica Dati Storia</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
             <XIcon className="w-6 h-6" />
           </button>
@@ -75,7 +75,6 @@ const MetadataEditorModal: React.FC<MetadataEditorModalProps> = ({ initialData, 
                 </div>
                 <div>
                   <label htmlFor="bookStyle" className="block text-sm font-medium text-gray-700 mb-1">Stile Illustrazioni</label>
-                   <p className="text-xs text-gray-500 mb-1">I prompt usati per la rigenerazione possono sovrascrivere questa impostazione.</p>
                   <select name="bookStyle" id="bookStyle" value={data.bookStyle} onChange={handleChange} className={inputClasses}>
                       <option value="toddler">Bambini Piccoli</option>
                       <option value="classic">Classico</option>
@@ -117,7 +116,7 @@ const MetadataEditorModal: React.FC<MetadataEditorModalProps> = ({ initialData, 
                 </div>
                  <div className="mt-4 p-4 border rounded-md bg-gray-100 flex items-center justify-center min-h-[6rem]">
                   <p
-                    className="transition-all duration-200"
+                    className="transition-all duration-200 text-gray-900"
                     style={{
                       fontFamily: data.textStyle.fontFamily,
                       fontSize: data.textStyle.fontSize,

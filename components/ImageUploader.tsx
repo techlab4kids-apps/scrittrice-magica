@@ -12,13 +12,21 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ title, onFileSelec
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFile = (file: File | null | undefined) => {
-    if (file && file.type.startsWith('image/')) {
+    const supportedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (file && supportedTypes.includes(file.type)) {
       onFileSelect(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    } else if (file) {
+      alert(`Tipo di file non supportato. Si prega di caricare un'immagine in formato PNG, JPG o WEBP.`);
+      onFileSelect(null);
+      setPreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } else {
       onFileSelect(null);
       setPreview(null);
@@ -80,7 +88,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ title, onFileSelec
           ref={fileInputRef}
           onChange={handleFileChange}
           className="hidden"
-          accept="image/*"
+          accept="image/png, image/jpeg, image/webp"
         />
         {preview ? (
           <img src={preview} alt="Anteprima" className="h-full w-full object-cover rounded-md" />

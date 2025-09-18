@@ -24,7 +24,7 @@ const ImagePanel = ({ page }: { page: StoryPage }) => (
 const TextPanel = ({ page, isCover, promptData }: { page: StoryPage, isCover: boolean, promptData: PromptData }) => {
     const effectiveTextStyle = page.textStyle || promptData.textStyle;
     return (
-        <div className="w-full h-full bg-white flex items-center justify-center p-6 md:p-10 rounded-r-md overflow-auto">
+        <div className="w-full h-full bg-white p-6 md:p-10 rounded-r-md overflow-auto flex items-center justify-center">
             <div 
                 className={`text-gray-800 ${isCover ? 'px-4 text-center' : 'px-8'}`}
                 style={{

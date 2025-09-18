@@ -25,6 +25,10 @@ const initialPromptData: PromptData = {
         textTransform: 'none',
     },
     autoGenerateImages: true,
+    storyInputMode: 'generate', // Default mode
+    pageCount: '5-7',
+    customTitle: '',
+    customText: '',
 };
 
 const themeSuggestions = [ "L'importanza dell'amicizia", "Superare le proprie paure", "Un'avventura in un bosco incantato", "Il primo giorno di scuola", "Imparare a condividere", "Un viaggio sulla luna", "Il mistero del giocattolo scomparso", "La magia della gentilezza", "Un picnic sotto le stelle", "Salvare un animale in difficoltà"];
@@ -111,47 +115,94 @@ const PromptWizard: React.FC<PromptWizardProps> = ({ onSubmit, disabled = false 
     e.preventDefault();
     onSubmit(promptData);
   };
+  
+  const setInputMode = (mode: 'generate' | 'custom') => {
+    setPromptData(prev => ({ ...prev, storyInputMode: mode }));
+  };
 
-  const inputClasses = "mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white placeholder-gray-400";
+  const inputClasses = "mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-gray-900 placeholder-gray-400";
+  
+  const renderGenerateMode = () => (
+     <div className="space-y-4 animate-fade-in">
+        <div>
+            <label htmlFor="themes" className="block text-sm font-medium text-gray-700">Temi principali</label>
+            <input type="text" name="themes" id="themes" value={promptData.themes} onChange={handleChange} className={inputClasses} placeholder="Es. amicizia, coraggio, avventura nella foresta" required disabled={disabled}/>
+            <div className="flex flex-wrap gap-2 mt-2">
+            {currentThemeSuggestions.map(suggestion => (
+                <button type="button" key={suggestion} onClick={() => handleSuggestionClick('themes', suggestion)} className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full hover:bg-indigo-200" disabled={disabled}>
+                {suggestion}
+                </button>
+            ))}
+            </div>
+        </div>
+        <div>
+            <label htmlFor="otherElements" className="block text-sm font-medium text-gray-700">Personaggi o elementi chiave</label>
+            <textarea name="otherElements" id="otherElements" rows={3} value={promptData.otherElements} onChange={handleChange} className={inputClasses} placeholder="Es. Un coniglio timido di nome Leo, una volpe saggia, un fiume magico" required disabled={disabled}/>
+            <div className="flex flex-wrap gap-2 mt-2">
+            {currentElementSuggestions.map(suggestion => (
+                <button type="button" key={suggestion} onClick={() => handleSuggestionClick('otherElements', suggestion)} className="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-full hover:bg-teal-200" disabled={disabled}>
+                {suggestion}
+                </button>
+            ))}
+            </div>
+        </div>
+        <div className="flex justify-between items-center pt-2">
+            <div>
+                <label htmlFor="pageCount" className="block text-sm font-medium text-gray-700">Numero di Pagine (circa)</label>
+                <input type="text" name="pageCount" id="pageCount" value={promptData.pageCount} onChange={handleChange} className={`${inputClasses} w-24`} required disabled={disabled}/>
+            </div>
+            <button type="button" onClick={shuffleSuggestions} className="flex items-center gap-2 px-3 py-1 text-sm bg-gray-200 rounded-md hover:bg-gray-300 self-end" disabled={disabled}>
+                <RefreshIcon className="w-4 h-4" /> Nuovi Suggerimenti
+            </button>
+        </div>
+     </div>
+  );
+  
+  const renderCustomTextMode = () => (
+     <div className="space-y-4 animate-fade-in">
+        <div>
+            <label htmlFor="customTitle" className="block text-sm font-medium text-gray-700">Titolo della Storia</label>
+            <input type="text" name="customTitle" id="customTitle" value={promptData.customTitle} onChange={handleChange} className={inputClasses} placeholder="Inserisci qui il titolo" required disabled={disabled}/>
+        </div>
+         <div>
+            <label htmlFor="customText" className="block text-sm font-medium text-gray-700">Testo della Storia</label>
+            <textarea name="customText" id="customText" rows={8} value={promptData.customText} onChange={handleChange} className={inputClasses} placeholder="Incolla qui il testo della tua storia. Lascia una o più righe vuote tra il testo di una pagina e la successiva per separarle." required disabled={disabled}/>
+             <p className="text-xs text-gray-500 mt-1">L'app dividerà il testo in pagine dove trova una riga vuota.</p>
+        </div>
+     </div>
+  );
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-xl animate-fade-in">
       <h2 className="text-3xl font-bold text-center mb-2 text-gray-800">Crea la Tua Storia</h2>
-      <p className="text-center text-gray-600 mb-8">
-        Compila i campi sottostanti o usa i nostri suggerimenti per dare all'IA le basi per creare il tuo racconto.
+      <p className="text-center text-gray-600 mb-6">
+        Scegli come vuoi iniziare: lascia che l'IA scriva per te o fornisci il tuo testo.
       </p>
       
       <form onSubmit={handleSubmit} className="space-y-6">
+        
+        {/* Input Mode Picker */}
+        <div className="flex justify-center p-1 bg-gray-200 rounded-lg">
+            <button
+                type="button"
+                onClick={() => setInputMode('generate')}
+                className={`w-1/2 px-4 py-2 text-sm font-semibold rounded-md transition-colors ${promptData.storyInputMode === 'generate' ? 'bg-white text-indigo-700 shadow' : 'text-gray-600'}`}
+            >
+                Genera Storia (AI)
+            </button>
+             <button
+                type="button"
+                onClick={() => setInputMode('custom')}
+                className={`w-1/2 px-4 py-2 text-sm font-semibold rounded-md transition-colors ${promptData.storyInputMode === 'custom' ? 'bg-white text-indigo-700 shadow' : 'text-gray-600'}`}
+            >
+                Inserisci Testo
+            </button>
+        </div>
+      
         {/* Story Content */}
         <div className="p-4 border rounded-lg border-gray-200 space-y-4">
             <h3 className="text-lg font-semibold mb-2">Contenuto della Storia</h3>
-            <div>
-              <label htmlFor="themes" className="block text-sm font-medium text-gray-700">Temi principali</label>
-              <input type="text" name="themes" id="themes" value={promptData.themes} onChange={handleChange} className={inputClasses} placeholder="Es. amicizia, coraggio, avventura nella foresta" required disabled={disabled}/>
-               <div className="flex flex-wrap gap-2 mt-2">
-                  {currentThemeSuggestions.map(suggestion => (
-                    <button type="button" key={suggestion} onClick={() => handleSuggestionClick('themes', suggestion)} className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full hover:bg-indigo-200" disabled={disabled}>
-                      {suggestion}
-                    </button>
-                  ))}
-               </div>
-            </div>
-            <div>
-              <label htmlFor="otherElements" className="block text-sm font-medium text-gray-700">Personaggi o elementi chiave</label>
-              <textarea name="otherElements" id="otherElements" rows={3} value={promptData.otherElements} onChange={handleChange} className={inputClasses} placeholder="Es. Un coniglio timido di nome Leo, una volpe saggia, un fiume magico" required disabled={disabled}/>
-               <div className="flex flex-wrap gap-2 mt-2">
-                  {currentElementSuggestions.map(suggestion => (
-                    <button type="button" key={suggestion} onClick={() => handleSuggestionClick('otherElements', suggestion)} className="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-full hover:bg-teal-200" disabled={disabled}>
-                      {suggestion}
-                    </button>
-                  ))}
-               </div>
-            </div>
-             <div className="text-center pt-2">
-                <button type="button" onClick={shuffleSuggestions} className="flex items-center gap-2 mx-auto px-3 py-1 text-sm bg-gray-200 rounded-md hover:bg-gray-300" disabled={disabled}>
-                    <RefreshIcon className="w-4 h-4" /> Nuovi Suggerimenti
-                </button>
-            </div>
+            {promptData.storyInputMode === 'generate' ? renderGenerateMode() : renderCustomTextMode()}
         </div>
 
         {/* Style and Details */}
@@ -187,7 +238,7 @@ const PromptWizard: React.FC<PromptWizardProps> = ({ onSubmit, disabled = false 
                         Genera immagini automaticamente
                     </label>
                 </div>
-                <p className="text-xs text-gray-500 mt-1 ml-6">Se deselezionato, dovrai generare ogni immagine manualmente nell'editor.</p>
+                <p className="text-xs text-gray-500 mt-1 ml-6">Se deselezionato, dovrai generare ogni immagine manually nell'editor.</p>
             </div>
         </div>
 
